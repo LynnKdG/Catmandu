@@ -25,7 +25,9 @@ our %EXPORT_TAGS = (
         qw(io read_file read_io write_file read_yaml read_json join_path
             normalize_path segmented_path content_type)
     ],
-    data  => [qw(parse_data_path get_data set_data delete_data data_at)],
+    data => [
+        qw(looks_like_data_path split_data_path parse_data_path get_data set_data delete_data data_at)
+    ],
     array => [
         qw(array_exists array_group_by array_pluck array_to_sentence
             array_sum array_includes array_any array_rest array_uniq array_split)
@@ -244,10 +246,23 @@ sub content_type {
     $type;
 }
 
+sub looks_like_data_path {
+    my ($path) = @_;
+    $path = trim($path);
+    is_string($path) && $path =~ /^\$[\.\/]/ ? 1 : 0;
+}
+
+sub split_data_path {
+    my ($path) = @_;
+    $path = trim($path);
+    $path =~ s/^\$[\.\/]//;
+    split_path($path);
+}
+
 sub parse_data_path {
     my ($path) = @_;
     check_string($path);
-    $path = split_path($path);
+    $path = split_data_path($path);
     my $key = pop @$path;
     return $path, $key;
 }
@@ -311,10 +326,10 @@ sub delete_data {
 sub data_at {
     my ($path, $data, %opts) = @_;
     if (ref $path) {
-        $path = [map {split_path($_)} @$path];
+        $path = [map {split_data_path($_)} @$path];
     }
     else {
-        $path = split_path($path);
+        $path = split_data_path($path);
     }
     my $create = $opts{create};
     my $_key = $opts{_key} // $opts{key};
